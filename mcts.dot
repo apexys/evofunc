@@ -1,0 +1,148 @@
+digraph{root [label="Const(0)
+self=-inf
+child=-1.1415927
+done=false
+prog=[]
+result=None"]
+n13 [label="Add
+self=-9999999
+child=-inf
+done=false
+prog=[Add]
+result=None"]
+root -> n13
+n12 [label="Const(0)
+self=-3.1415927
+child=-inf
+done=false
+prog=[Const(0)]
+result=Some(0.0)"]
+root -> n12
+n11 [label="Const(0)
+self=-3.1415927
+child=-inf
+done=false
+prog=[Const(0)]
+result=Some(0.0)"]
+root -> n11
+n10 [label="Const(0)
+self=-3.1415927
+child=-1.1415927
+done=false
+prog=[Const(0)]
+result=Some(0.0)"]
+root -> n10
+n20 [label="Const(2)
+self=-1.1415927
+child=-inf
+done=false
+prog=[Const(0) Const(2)]
+result=Some(2.0)"]
+n10 -> n20
+n9 [label="Const(0)
+self=-3.1415927
+child=-inf
+done=false
+prog=[Const(0)]
+result=Some(0.0)"]
+root -> n9
+n8 [label="Log
+self=-9999999
+child=-inf
+done=false
+prog=[Log]
+result=None"]
+root -> n8
+n7 [label="Const(2)
+self=-1.1415927
+child=-1.1415927
+done=false
+prog=[Const(2)]
+result=Some(2.0)"]
+root -> n7
+n19 [label="Const(0)
+self=-3.1415927
+child=-inf
+done=false
+prog=[Const(2) Const(0)]
+result=Some(0.0)"]
+n7 -> n19
+n18 [label="Add
+self=-9999999
+child=-inf
+done=false
+prog=[Const(2) Add]
+result=None"]
+n7 -> n18
+n17 [label="Const(2)
+self=-1.1415927
+child=-inf
+done=false
+prog=[Const(2) Const(2)]
+result=Some(2.0)"]
+n7 -> n17
+n16 [label="Exp
+self=-9999999
+child=-inf
+done=false
+prog=[Const(2) Exp]
+result=Some(7.389056)"]
+n7 -> n16
+n15 [label="Sub
+self=-9999999
+child=-inf
+done=false
+prog=[Const(2) Sub]
+result=None"]
+n7 -> n15
+n14 [label="Const(2)
+self=-1.1415927
+child=-inf
+done=false
+prog=[Const(2) Const(2)]
+result=Some(2.0)"]
+n7 -> n14
+n6 [label="Mul
+self=-9999999
+child=-inf
+done=false
+prog=[Mul]
+result=None"]
+root -> n6
+n1 [label="Exp
+self=-9999999
+child=-1.1415927
+done=false
+prog=[Exp]
+result=None"]
+root -> n1
+n4 [label="Exp
+self=-9999999
+child=-inf
+done=false
+prog=[Exp Exp]
+result=None"]
+n1 -> n4
+n3 [label="Const(2)
+self=-1.1415927
+child=-9999999
+done=false
+prog=[Exp Const(2)]
+result=None"]
+n1 -> n3
+n5 [label="Const(1)
+self=-9999999
+child=-inf
+done=false
+prog=[Exp Const(2) Const(1)]
+result=None"]
+n3 -> n5
+n2 [label="Log
+self=-9999999
+child=-inf
+done=false
+prog=[Exp Log]
+result=None"]
+n1 -> n2
+
+}
