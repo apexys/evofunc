@@ -1,3 +1,5 @@
+use evofunc::{Instruction, Program};
+
 
 pub fn main(){
     let iset =  vec![
@@ -14,7 +16,7 @@ pub fn main(){
     Instruction::Add
     ]);
     
-    let result = program.run(&consts, &[]);
+    let result = program.evaluate_to_result(&consts, &[]);
     
-    eprintln!("Result: {result}");
+    eprintln!("Result: {result:?}");
 }

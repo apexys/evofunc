@@ -11,6 +11,10 @@ impl<T> Arena<T>{
         Self { items: Vec::new() }
     }
 
+    pub fn len(&self) -> usize{
+        self.items.len()
+    }
+
     pub fn with_capacity(capacity: usize) -> Self{
         Self { items: Vec::with_capacity(capacity) }
     }

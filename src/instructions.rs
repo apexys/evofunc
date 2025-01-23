@@ -7,12 +7,13 @@ pub enum Instruction{
     Div,
     Exp,
     Log,
-    Const(usize),
-    Var(usize)
+    Const(u8),
+    Var(u8)
 }
 
 pub const STACKSIZE: usize = 128;
 
+#[derive(Clone)]
 pub struct Program{
     pub instructions: Vec<Instruction>
 }
@@ -37,12 +38,24 @@ impl Program{
     pub fn truncate_to_len(&mut self, len: usize){
         self.instructions.truncate(len);
     }
+
+    pub fn clear(&mut self){
+        self.instructions.clear();
+    }
     
     pub fn create(insts: &[Instruction]) -> Self{
         Self{instructions: insts.to_vec()}
     }
 
-    pub fn run(&self, consts: &[f32], vars: &[f32]) -> Option<f32>{
+    pub fn evaluate_to_result(&self, consts: &[f32], vars: &[f32]) -> Option<f32>{
+        self.run(consts, vars).and_then(|mut s| s.pop())
+    }
+
+    pub fn evaluate_to_result_and_remaining_stack(&self, consts: &[f32], vars: &[f32]) -> Option<(f32, usize)>{
+        self.run(consts, vars).and_then(|mut s| Some((s.pop()?, s.len())))
+    }
+
+    pub fn run(&self, consts: &[f32], vars: &[f32]) -> Option<Stack>{
         let mut stack = Stack::new();
         for inst in self.instructions.iter(){
             match inst{
@@ -79,16 +92,16 @@ impl Program{
                     stack.push(v.ln());
                 },
                 Instruction::Const(idx) => {
-                    let v = consts[*idx];
+                    let v = consts[*idx as usize];
                     stack.push(v);
                 },
                 Instruction::Var(idx) => {
-                    let v = vars[*idx];
+                    let v = vars[*idx as usize];
                     stack.push(v);
                 },
             }
         }
-        stack.pop()
+        Some(stack)
     }
 
     pub fn render(&self) -> String{
@@ -105,7 +118,7 @@ impl Program{
             pub fn to_string(&self, consts: &[f32]) -> String{
                 match self{
                     Node::Leaf(instruction) => match instruction{
-                        Instruction::Const(ci) => format!("{}", consts[*ci]),
+                        Instruction::Const(ci) => format!("{}", consts[*ci as usize]),
                         Instruction::Var(vi) => format!("v_{vi}"),
                         _ => format!("{:?}", instruction)
                     },
@@ -115,9 +128,9 @@ impl Program{
                             Instruction::Sub => format!("({} - {})", c[0].to_string(consts), c[1].to_string(consts)),
                             Instruction::Mul => format!("({} * {})", c[0].to_string(consts), c[1].to_string(consts)),
                             Instruction::Div => format!("({} / {})", c[0].to_string(consts), c[1].to_string(consts)),
-                            Instruction::Exp => format!("(e^{})", c[0].to_string(consts)),
+                            Instruction::Exp => format!("(e**{})", c[0].to_string(consts)),
                             Instruction::Log => format!("(ln({}))", c[0].to_string(consts)),
-                            Instruction::Const(ci) => format!("{}", consts[*ci]),
+                            Instruction::Const(ci) => format!("{}", consts[*ci as usize]),
                             Instruction::Var(vi) => format!("v_{vi}"),
                         }
                     },
@@ -172,6 +185,10 @@ pub struct Stack{
 impl Stack{
     pub fn new() -> Self{
         Stack { values: [0f32; STACKSIZE], sp: 0 }
+    }
+
+    pub fn len(&self) -> usize{
+        self.sp
     }
 
     pub fn push(&mut self, value: f32){
