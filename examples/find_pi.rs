@@ -39,6 +39,13 @@ fn main() {
             eprint!("\r Explored {} million nodes in {}m{}s ({:.3}s/million), using {:.3}GB RAM\t\t\t", nodes / 1_000_000, total_minutes, total_seconds.ceil(), elapsed, memory);
             now = Instant::now();
         }
+
+        if mcts.node_count() > 10_000_000{
+            eprintln!("\nCollecting garbage, current node count is {}", mcts.node_count());
+            mcts.garbage_collect(2);
+            eprintln!("\nGarbage collection done, current node count is {}", mcts.node_count());
+        }
+
         let more_exploration = mcts.search_one();
         let high_score = mcts.high_score();
         if high_score > current_high_score {

@@ -15,6 +15,8 @@ pub struct ProgramNode {
     children: Vec<Ap<ProgramNode>>,
     parent: Option<Ap<ProgramNode>>,
     done: bool,
+    //How often this node has been selected in search
+    visits: u64,
 }
 
 impl ProgramNode {
@@ -26,6 +28,7 @@ impl ProgramNode {
             children: Vec::new(),
             parent: None,
             done: false,
+            visits: 0,
         }
     }
 }
@@ -69,11 +72,11 @@ impl MCTS {
         }
     }
 
-    pub fn node_count(&self) -> usize{
-        self.arena.len() -1 //remove root node
+    pub fn node_count(&self) -> usize {
+        self.arena.len() - 1 //remove root node
     }
 
-    pub fn node_memory_upper_bound(&self) -> usize{
+    pub fn node_memory_upper_bound(&self) -> usize {
         let prog_node_size = std::mem::size_of::<ProgramNode>();
         let average_child_count = (self.exploration_chance * (self.iset.len() as f32));
         let average_children_size = (prog_node_size as f32 * average_child_count).ceil() as usize;
@@ -167,7 +170,8 @@ impl MCTS {
         //Add the new instruction to the program
         self.current_program.push_inst(*new_inst);
         // Simulation step
-        let score = (self.evaluation_func)(&self.current_program).and_then(|v| v.is_finite().then_some(v));
+        let score =
+            (self.evaluation_func)(&self.current_program).and_then(|v| v.is_finite().then_some(v));
         //Insert into tree
         let mut new_node = ProgramNode::new(*new_inst, score);
         //new_node.program = program.clone();
@@ -178,15 +182,62 @@ impl MCTS {
             self.best_node = new_node_ap;
         }
         // Backpropagation step
-        self.recalculate_score_recursive(node);
+        if score.is_some() {
+            self.recalculate_score_recursive(node);
+        }
         true
     }
 
-    fn search_step(
-        &mut self,
-        current_depth: usize,
-        node: &Ap<ProgramNode>,
-    ) -> bool {
+    pub fn garbage_collect(&mut self, minimum_visits: u64) {
+        let mut new_arena = Arena::with_capacity(self.arena.len());
+
+        fn convert_node(
+            old_arena: &Arena<ProgramNode>,
+            mut new_arena: &mut Arena<ProgramNode>,
+            old_node: Ap<ProgramNode>,
+            new_parent: Option<Ap<ProgramNode>>,
+            old_best_node: Ap<ProgramNode>,
+            new_best_node: &mut Option<Ap<ProgramNode>>,
+            minimum_visits: u64
+        ) -> Ap<ProgramNode> {
+            let old_node_inst = old_node.get(&old_arena);
+            let mut new_inst = old_node_inst.clone();
+            if let Some(new_parent) = new_parent {
+                new_inst.parent = Some(new_parent);
+            }
+            new_inst.children.retain(|c| c.get(old_arena).visits >= minimum_visits);
+            let child_count = new_inst.children.len();
+            let new_node = new_arena.allocate(new_inst);
+            if old_node == old_best_node{
+                *new_best_node = Some(new_node);
+            }
+            for i in 0..child_count {
+                let child = new_node.get(&new_arena).children[i];
+                let new_child = convert_node(
+                    old_arena,
+                    new_arena,
+                    child,
+                    Some(new_node),
+                    old_best_node,
+                    new_best_node,
+                    minimum_visits
+                );
+                new_node.get_mut(&mut new_arena).children[i] = new_child;
+            }
+            new_node
+        }
+
+        let old_best_node = self.best_node;
+        let mut new_best_node = None;
+
+        self.root_node = convert_node(&self.arena, &mut new_arena, self.root_node, None, old_best_node, &mut new_best_node, minimum_visits);
+        self.best_node = new_best_node.unwrap_or(self.root_node);
+        self.arena = new_arena;
+    }
+
+    fn search_step(&mut self, current_depth: usize, node: &Ap<ProgramNode>) -> bool {
+        //Mark as visited
+        node.get_mut(&mut self.arena).visits += 1;
         //Check if max program length already there
         if current_depth == self.max_program_length {
             return false;
@@ -209,10 +260,11 @@ impl MCTS {
         //Extend program with current instruction
         if *node != self.root_node {
             //Check if we're in a permanently invalid branch
-            if node.get(&self.arena).self_score.is_none(){
+            if node.get(&self.arena).self_score.is_none() {
                 return false;
             }
-            self.current_program.push_inst(node.get(&self.arena).instruction);
+            self.current_program
+                .push_inst(node.get(&self.arena).instruction);
         }
 
         //Expansion step
@@ -233,16 +285,17 @@ impl MCTS {
                 .unwrap_or_default();
             let numerator = nodes
                 .iter()
-                .filter_map(|n| (n.get(&self.arena).self_score).map(|self_score| (self_score  - max_score).exp()))
+                .filter_map(|n| {
+                    (n.get(&self.arena).self_score).map(|self_score| (self_score - max_score).exp())
+                })
                 .sum::<f32>();
             let random = fastrand::f32();
             let mut cumulative_score = 0.0;
             let mut chosen_index = nodes.len() - 1;
             let mut chosen_node = nodes[chosen_index];
             for (i, node) in nodes.iter().enumerate() {
-                if let Some(self_score) = node.get(&self.arena).self_score{
-                    let node_score_softmax =
-                        (self_score - max_score).exp() / numerator;
+                if let Some(self_score) = node.get(&self.arena).self_score {
+                    let node_score_softmax = (self_score - max_score).exp() / numerator;
                     cumulative_score += node_score_softmax;
                     if random < cumulative_score {
                         chosen_node = *node;
@@ -298,8 +351,12 @@ impl MCTS {
                 "{} [label=\"{:?}\nself={}\nchild={}\ndone={}\nprog=[{}]\nresult={:?}\"]",
                 get_node_name(pointer),
                 node.instruction,
-                node.self_score.map(|v| v.to_string()).unwrap_or("/".to_string()),
-                node.child_score.map(|v| v.to_string()).unwrap_or("/".to_string()),
+                node.self_score
+                    .map(|v| v.to_string())
+                    .unwrap_or("/".to_string()),
+                node.child_score
+                    .map(|v| v.to_string())
+                    .unwrap_or("/".to_string()),
                 node.done,
                 program.render(),
                 result

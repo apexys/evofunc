@@ -124,10 +124,10 @@ impl Program{
                     },
                     Node::Node(i, c) => {
                         match i{
-                            Instruction::Add => format!("({} + {})", c[0].to_string(consts), c[1].to_string(consts)),
-                            Instruction::Sub => format!("({} - {})", c[0].to_string(consts), c[1].to_string(consts)),
-                            Instruction::Mul => format!("({} * {})", c[0].to_string(consts), c[1].to_string(consts)),
-                            Instruction::Div => format!("({} / {})", c[0].to_string(consts), c[1].to_string(consts)),
+                            Instruction::Add => format!("({} + {})", c[1].to_string(consts), c[0].to_string(consts)),
+                            Instruction::Sub => format!("({} - {})", c[1].to_string(consts), c[0].to_string(consts)),
+                            Instruction::Mul => format!("({} * {})", c[1].to_string(consts), c[0].to_string(consts)),
+                            Instruction::Div => format!("({} / {})", c[1].to_string(consts), c[0].to_string(consts)),
                             Instruction::Exp => format!("(e**{})", c[0].to_string(consts)),
                             Instruction::Log => format!("(ln({}))", c[0].to_string(consts)),
                             Instruction::Const(ci) => format!("{}", consts[*ci as usize]),
